@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="hi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dekho aur Kamao</title>
+<style>
+:root{--bg:#f6f3ec;--card:#fff;--ink:#1c1b19;--mut:#6b675f;--acc:#0f766e;--line:#e3ded2;--warn:#b45309}
+@media(prefers-color-scheme:dark){:root{--bg:#15171a;--card:#1f2226;--ink:#f1efe9;--mut:#9a968c;--line:#32363b}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,sans-serif}
+main{max-width:480px;margin:0 auto;padding:16px}h1{font:700 22px Georgia,serif;margin:0}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:10px 0}
+input,select{width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:inherit;font:inherit;margin:5px 0}
+button{background:var(--acc);color:#fff;border:0;border-radius:10px;padding:11px 16px;font:inherit;cursor:pointer;min-height:44px}
+button.g{background:transparent;color:var(--ink);border:1px solid var(--line)}button:disabled{opacity:.45}
+.full{width:100%}.tabs{display:flex;gap:6px;margin:10px 0}.tabs button{flex:1;background:var(--card);color:var(--ink);border:1px solid var(--line)}.tabs .on{background:var(--acc);color:#fff}
+.coins{font:700 40px Georgia,serif;color:var(--acc)}.mut{color:var(--mut);font-size:14px}.ok{color:var(--acc);font-weight:600}.pend{color:var(--warn);font-weight:600}
+.bar{height:8px;background:var(--line);border-radius:6px;overflow:hidden;margin:8px 0}.bar i{display:block;height:100%;background:var(--acc)}
+.lock{border:1px dashed var(--warn);color:var(--warn);border-radius:10px;padding:10px}
+video{width:100%;border-radius:10px;background:#000;aspect-ratio:16/9}
+</style></head><body><main id="app">Loading…</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const CFG={
+ SUPA_URL:"https://qzpolbuctbhxtqwdcwuk.supabase.co",
+ SUPA_KEY:"sb_publishable_dRS_Y7_5lmxeLTQIEQ75bQ_e1LM6y57",   // publishable key (chhupa secret nahi)
+ ADMIN_EMAIL:"hashmi4594@gmail.com",                          // sirf yahi Gmail admin ban sakta hai
+ COIN_RS:0.1                                                  // 1 coin = kitne rupaye
+};
+(function(){
+const sb=supabase.createClient(CFG.SUPA_URL,CFG.SUPA_KEY);
+const $=s=>document.querySelector(s),esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let S={name:'Dekho aur Kamao',notice:'Video dekho, coin kamao!',rate:10,min_coins:1000,color:'#0f766e'};
+let me=null,U={coins:0,sec:0},V=[],P=[],view='home',admin=false,step=0,msg='',taps=0,timer=null,cache={};
+const isAdminMail=()=>me&&me.email===CFG.ADMIN_EMAIL;
+const sha=async t=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t)))].map(b=>b.toString(16).padStart(2,'0')).join('');
+
+async function load(){
+ const c=await sb.from('app_config').select('*').eq('id',1).maybeSingle();
+ if(c.data){S={...S,...c.data};document.documentElement.style.setProperty('--acc',S.color)}
+ if(me){const [p,v,y]=await Promise.all([sb.from('profiles').select('*').eq('id',me.id).maybeSingle(),sb.from('videos').select('*').order('created_at',{ascending:false}),sb.from('payouts').select('*').order('created_at',{ascending:false})]);
+  if(p.data)U=p.data;V=v.data||[];P=y.data||[]}}
+async function refresh(){await load();if(!timer)render()}
+sb.auth.onAuthStateChange((e,s)=>{me=s?.user||null;setTimeout(refresh,0)});
+const login=()=>sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname}}).then(r=>{if(r.error){msg=r.error.message;render()}});
+const logout=async()=>{clearInterval(timer);timer=null;admin=false;step=0;view='home';await sb.auth.signOut()};
+const head=()=>`<div class="top"><h1 id="logo">${esc(S.name)}</h1>${me?'<button class="g" id="lo">Logout</button>':''}</div>`;
+const bindCommon=()=>{const l=$('#logo');if(l)l.onclick=()=>{if(isAdminMail()&&++taps>=5){taps=0;step=1;render()}};const o=$('#lo');if(o)o.onclick=logout;
+ document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{view=b.dataset.v;render()})};
+
+function render(){clearInterval(timer);timer=null;const a=$('#app');
+ if(!me){a.innerHTML=head()+`<div class="card"><p>${esc(S.notice)}</p><button class="full" id="gl">Google se Sign in</button><p class="pend">${esc(msg)}</p></div>`;$('#gl').onclick=login;return}
+ if(step>0&&!admin)return gate();
+ if(admin)return adminUI();
+ const can=U.coins>=S.min_coins,mine=P.filter(p=>p.uid===me.id);
+ a.innerHTML=head()+`<div class="tabs"><button class="${view==='home'?'on':''}" data-v="home">Videos</button><button class="${view==='wallet'?'on':''}" data-v="wallet">Wallet</button></div>`+
+ (view==='home'?`<p class="mut">${esc(S.notice)} Har 1 minute = ${S.rate} coin</p>`+(V.map(v=>`<div class="card"><b>${esc(v.title)}</b><div id="p${v.id}"><button class="full" data-play="${v.id}">▶ Dekho</button></div></div>`).join('')||'<p class="mut">Abhi koi video nahi.</p>')
+ :`<div class="card"><div class="mut">Aapke coin</div><div class="coins">${U.coins}</div><div class="bar"><i style="width:${Math.min(100,U.coins/S.min_coins*100)}%"></i></div><div class="mut">${can?'Payout unlock ho gaya!':(S.min_coins-U.coins)+' coin aur chahiye'}</div></div>`+
+ (can?`<div class="card"><b>Payout details</b><input id="upi" placeholder="UPI ID"><input id="ph" type="tel" placeholder="Phone number"><input id="wa" placeholder="WhatsApp number ya link"><button class="full" id="pr">Payout maango (${U.coins} coin)</button></div>`:`<div class="lock">🔒 Payout ${S.min_coins} coin ke baad khulega.</div>`)+
+ `<h3>Payment status</h3>`+(mine.map(p=>`<div class="card">${p.coins} coin · ${p.status==='paid'?`<span class="ok">Payment ho gayi ✓</span><div class="mut">${esc(p.note)}</div>`:'<span class="pend">24 ghante ke andar aayegi</span>'}</div>`).join('')||'<p class="mut">Abhi koi request nahi.</p>'));
+ a.querySelectorAll('[data-play]').forEach(b=>b.onclick=()=>play(+b.dataset.play));
+ bindCommon();if($('#pr'))$('#pr').onclick=payReq}
+
+/* ---- Video dekhna aur coin (coin server par judte hain) ---- */
+function play(id){document.querySelectorAll('video').forEach(x=>x.pause());const v=V.find(x=>x.id===id),box=$('#p'+id);
+ box.innerHTML=`<video src="${esc(v.url)}" controls playsinline></video><div class="mut">Coin: <b id="cn">${U.coins}</b></div>`;
+ const el=box.querySelector('video');
+ el.onplay=()=>{clearInterval(timer);timer=setInterval(async()=>{const r=await sb.rpc('add_watch',{p_sec:5});if(r.data){U=r.data;const c=$('#cn');if(c)c.textContent=U.coins}},5000)};
+ el.onpause=el.onended=()=>{clearInterval(timer);timer=null};
+ el.play().catch(()=>{})}
+async function payReq(){const upi=$('#upi').value.trim(),ph=$('#ph').value.trim(),wa=$('#wa').value.trim();if(!upi||!ph||!wa)return alert('Teeno details bharo');
+ const r=await sb.rpc('request_payout',{p_upi:upi,p_ph:ph,p_wa:wa});if(r.error)return alert(r.error.message);await refresh()}
+
+/* ---- Admin gate: code -> fingerprint -> code -> secret code ---- */
+function gate(){const t=['','Code','Fingerprint','Code dobara','Secret code'][step];
+ $('#app').innerHTML=head()+`<div class="card"><b>Step ${step}/4: ${t}</b>${step!==2?`<input id="g" type="password" placeholder="${t}">`:'<p class="mut">Phone ka fingerprint/screen lock verify hoga.</p>'}<button class="full" id="gn">Verify</button><button class="g full" id="gb" style="margin-top:8px">Wapas</button><p class="pend">${esc(msg)}</p></div>`;
+ $('#gn').onclick=gnext;$('#gb').onclick=()=>{step=0;render()};bindCommon()}
+async function gnext(){msg='';const r=await sb.from('admin_secrets').select('*').eq('id',1).maybeSingle(),D=r.data,val=$('#g')?$('#g').value:'';
+ if(r.error){msg='Error: '+r.error.message;return gate()}
+ try{
+ if(!D){ // pehli baar: codes set karo
+   if(step===1){if(val.length<4){msg='Code kam se kam 4 akshar ka rakho';return gate()}cache.c=await sha(val);step=2}
+   else if(step===2){await passkey();step=3}
+   else if(step===3){if(await sha(val)!==cache.c){msg='Code match nahi hua';return gate()}step=4}
+   else{if(val.length<4||await sha(val)===cache.c){msg='Secret code alag aur 4+ akshar ka rakho';return gate()}
+     const w=await sb.from('admin_secrets').upsert({id:1,c:cache.c,s:await sha(val)});if(w.error)throw w.error;admin=true;step=0;view='a1'}
+ }else{
+   if(step===1){if(await sha(val)!==D.c){msg='Galat code';return gate()}step=2}
+   else if(step===2){await passkey();step=3}
+   else if(step===3){if(await sha(val)!==D.c){msg='Galat code';return gate()}step=4}
+   else{if(await sha(val)!==D.s){msg='Galat secret code';return gate()}admin=true;step=0;view='a1'}}
+ }catch(e){msg='Error: '+e.message}
+ render()}
+async function passkey(){const id=localStorage.getItem('pk_'+me.id),ch=crypto.getRandomValues(new Uint8Array(32));
+ if(id){const raw=Uint8Array.from(atob(id),c=>c.charCodeAt(0));await navigator.credentials.get({publicKey:{challenge:ch,allowCredentials:[{type:'public-key',id:raw}],userVerification:'required'}})}
+ else{const c=await navigator.credentials.create({publicKey:{challenge:ch,rp:{name:S.name},user:{id:new TextEncoder().encode(me.id),name:me.email,displayName:'Admin'},pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],authenticatorSelection:{userVerification:'required',authenticatorAttachment:'platform'}}});
+  localStorage.setItem('pk_'+me.id,btoa(String.fromCharCode(...new Uint8Array(c.rawId))))}}
+
+/* ---- Admin panel ---- */
+function adminUI(){const a=$('#app');
+ a.innerHTML=head()+`<div class="tabs"><button class="${view==='a1'?'on':''}" data-v="a1">Payout</button><button class="${view==='a2'?'on':''}" data-v="a2">Video</button><button class="${view==='a3'?'on':''}" data-v="a3">Setting</button></div>`+
+ (view==='a1'?P.map(p=>`<div class="card"><b>${esc(p.name)}</b> · ${p.coins} coin (₹${(p.coins*CFG.COIN_RS).toFixed(0)})<div class="mut">UPI: ${esc(p.upi)}<br>Phone: ${esc(p.ph)}<br>WhatsApp: ${esc(p.wa)}</div>${p.status==='paid'?'<span class="ok">Paid ✓</span>':`<a href="upi://pay?pa=${encodeURIComponent(p.upi)}&pn=${encodeURIComponent(p.name||'User')}&am=${(p.coins*CFG.COIN_RS).toFixed(2)}&cu=INR"><button class="g full">UPI app me payment karo</button></a><input id="n${p.id}" placeholder="Message / UPI ref no."><button class="full" data-paid="${p.id}">Payment ho gayi, user ko batao</button>`}</div>`).join('')||'<p class="mut">Koi request nahi.</p>'
+ :view==='a2'?`<div class="card"><b>Naya video</b><input id="vt" placeholder="Title"><input id="vf" type="file" accept="video/*"><button class="full" id="up">App me upload karo</button><div id="us" class="mut"></div></div>`+V.map(v=>`<div class="card">${esc(v.title)} <button class="g" data-del="${v.id}">Hatao</button></div>`).join('')
+ :`<div class="card"><input id="sn" value="${esc(S.name)}" placeholder="App ka naam"><input id="sc" value="${esc(S.notice)}" placeholder="Notice"><input id="sl" type="color" value="${S.color}"><button class="full" id="ss">Save</button><p class="mut">Coin rate aur ${S.min_coins} coin ka rule payment lock me hai (Supabase me badlo).</p></div>`);
+ bindCommon();
+ a.querySelectorAll('[data-paid]').forEach(b=>b.onclick=async()=>{const r=await sb.from('payouts').update({status:'paid',note:$('#n'+b.dataset.paid).value||'Aapki payment bhej di gayi hai.'}).eq('id',b.dataset.paid);if(r.error)alert(r.error.message);await refresh()});
+ a.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{const v=V.find(x=>x.id==b.dataset.del);if(v.path)await sb.storage.from('videos').remove([v.path]);await sb.from('videos').delete().eq('id',v.id);await refresh()});
+ if($('#ss'))$('#ss').onclick=async()=>{const r=await sb.from('app_config').update({name:$('#sn').value,notice:$('#sc').value,color:$('#sl').value}).eq('id',1);if(r.error)alert(r.error.message);await refresh()};
+ if($('#up'))$('#up').onclick=upload}
+async function upload(){const f=$('#vf').files[0],t=$('#vt').value.trim(),us=$('#us');if(!f||!t)return alert('Title aur video chuno');
+ try{us.textContent='Upload ho raha hai… (bade video me time lagega)';const path=Date.now()+'_'+f.name.replace(/[^\w.-]/g,'_');
+ const up=await sb.storage.from('videos').upload(path,f,{contentType:f.type});if(up.error)throw up.error;
+ const url=sb.storage.from('videos').getPublicUrl(path).data.publicUrl;
+ const ins=await sb.from('videos').insert({title:t,url,path});if(ins.error)throw ins.error;
+ us.textContent='Ho gaya ✓';await load();$('#vt').value='';$('#vf').value=''}catch(e){us.textContent='Error: '+e.message}}
+})();
+</script></body></html>
