@@ -16,29 +16,37 @@ button.g{background:transparent;color:var(--ink);border:1px solid var(--line)}bu
 .coins{font:700 40px Georgia,serif;color:var(--acc)}.mut{color:var(--mut);font-size:14px}.ok{color:var(--acc);font-weight:600}.pend{color:var(--warn);font-weight:600}
 .bar{height:8px;background:var(--line);border-radius:6px;overflow:hidden;margin:8px 0}.bar i{display:block;height:100%;background:var(--acc)}
 .lock{border:1px dashed var(--warn);color:var(--warn);border-radius:10px;padding:10px}
+.vh{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+.mn{position:absolute;right:0;top:48px;min-width:160px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px;z-index:5;display:flex;flex-direction:column;gap:6px}.mn[hidden]{display:none}
+.tabs button{padding:11px 4px;font-size:14px}
 video{width:100%;border-radius:10px;background:#000;aspect-ratio:16/9}
-</style></head><body><main id="app">Loading…</main>
+</style>
+<!-- Google AdSense -->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3524089803694668"
+     crossorigin="anonymous"></script>
+</head><body><main id="app">Loading…</main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 const CFG={
  SUPA_URL:"https://qzpolbuctbhxtqwdcwuk.supabase.co",
  SUPA_KEY:"sb_publishable_dRS_Y7_5lmxeLTQIEQ75bQ_e1LM6y57",   // publishable key (chhupa secret nahi)
- ADMIN_EMAIL:"hashmi4594@gmail.com",                          // sirf yahi Gmail admin ban sakta hai
+ ADMIN_EMAIL:"hashmi4594@gmail.com",
+                          // sirf yahi Gmail admin ban sakta hai
  COIN_RS:0.1                                                  // 1 coin = kitne rupaye
 };
 (function(){
 const sb=supabase.createClient(CFG.SUPA_URL,CFG.SUPA_KEY);
 const $=s=>document.querySelector(s),esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let S={name:'Dekho aur Kamao',notice:'Video dekho, coin kamao!',rate:10,min_coins:1000,color:'#0f766e'};
-let me=null,U={coins:0,sec:0},V=[],P=[],view='home',admin=false,step=0,msg='',taps=0,timer=null,cache={};
+let S={name:'Dekho aur Kamao',notice:'Video dekho, coin kamao!',rate:10,min_coins:1000,color:'#0f766e',ad_every:20,ad_skip:5,ad_vid_limit:1};
+let me=null,U={coins:0,sec:0},V=[],P=[],A=[],PL=[],AR=[],adIv=null,gapIv=null,view='home',admin=false,step=0,msg='',taps=0,timer=null,cache={};
 const isAdminMail=()=>me&&me.email===CFG.ADMIN_EMAIL;
 const sha=async t=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t)))].map(b=>b.toString(16).padStart(2,'0')).join('');
 
 async function load(){
  const c=await sb.from('app_config').select('*').eq('id',1).maybeSingle();
  if(c.data){S={...S,...c.data};document.documentElement.style.setProperty('--acc',S.color)}
- if(me){const [p,v,y]=await Promise.all([sb.from('profiles').select('*').eq('id',me.id).maybeSingle(),sb.from('videos').select('*').order('created_at',{ascending:false}),sb.from('payouts').select('*').order('created_at',{ascending:false})]);
-  if(p.data)U=p.data;V=v.data||[];P=y.data||[]}}
+ if(me){const [p,v,y,ad,pl,ar]=await Promise.all([sb.from('profiles').select('*').eq('id',me.id).maybeSingle(),sb.from('videos').select('*').order('created_at',{ascending:false}),sb.from('payouts').select('*').order('created_at',{ascending:false}),sb.from('ads').select('*').order('created_at',{ascending:false}),sb.from('ad_plans').select('*').order('sort'),sb.from('ad_requests').select('*').order('created_at',{ascending:false})]);
+  if(p.data)U=p.data;V=v.data||[];P=y.data||[];A=ad.data||[];PL=pl.data||[];AR=ar.data||[]}}
 async function refresh(){await load();if(!timer)render()}
 sb.auth.onAuthStateChange((e,s)=>{me=s?.user||null;setTimeout(refresh,0)});
 const login=()=>sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname}}).then(r=>{if(r.error){msg=r.error.message;render()}});
@@ -47,27 +55,53 @@ const head=()=>`<div class="top"><h1 id="logo">${esc(S.name)}</h1>${me?'<button 
 const bindCommon=()=>{const l=$('#logo');if(l)l.onclick=()=>{if(isAdminMail()&&++taps>=5){taps=0;step=1;render()}};const o=$('#lo');if(o)o.onclick=logout;
  document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{view=b.dataset.v;render()})};
 
-function render(){clearInterval(timer);timer=null;const a=$('#app');
+function render(){clearInterval(timer);timer=null;clearInterval(adIv);adIv=null;clearInterval(gapIv);gapIv=null;const a=$('#app');
  if(!me){a.innerHTML=head()+`<div class="card"><p>${esc(S.notice)}</p><button class="full" id="gl">Google se Sign in</button><p class="pend">${esc(msg)}</p></div>`;$('#gl').onclick=login;return}
  if(step>0&&!admin)return gate();
- if(admin)return adminUI();
- const can=U.coins>=S.min_coins,mine=P.filter(p=>p.uid===me.id);
- a.innerHTML=head()+`<div class="tabs"><button class="${view==='home'?'on':''}" data-v="home">Videos</button><button class="${view==='wallet'?'on':''}" data-v="wallet">Wallet</button></div>`+
- (view==='home'?`<p class="mut">${esc(S.notice)} Har 1 minute = ${S.rate} coin</p>`+(V.map(v=>`<div class="card"><b>${esc(v.title)}</b><div id="p${v.id}"><button class="full" data-play="${v.id}">▶ Dekho</button></div></div>`).join('')||'<p class="mut">Abhi koi video nahi.</p>')
- :`<div class="card"><div class="mut">Aapke coin</div><div class="coins">${U.coins}</div><div class="bar"><i style="width:${Math.min(100,U.coins/S.min_coins*100)}%"></i></div><div class="mut">${can?'Payout unlock ho gaya!':(S.min_coins-U.coins)+' coin aur chahiye'}</div></div>`+
- (can?`<div class="card"><b>Payout details</b><input id="upi" placeholder="UPI ID"><input id="ph" type="tel" placeholder="Phone number"><input id="wa" placeholder="WhatsApp number ya link"><button class="full" id="pr">Payout maango (${U.coins} coin)</button></div>`:`<div class="lock">🔒 Payout ${S.min_coins} coin ke baad khulega.</div>`)+
- `<h3>Payment status</h3>`+(mine.map(p=>`<div class="card">${p.coins} coin · ${p.status==='paid'?`<span class="ok">Payment ho gayi ✓</span><div class="mut">${esc(p.note)}</div>`:'<span class="pend">24 ghante ke andar aayegi</span>'}</div>`).join('')||'<p class="mut">Abhi koi request nahi.</p>'));
+ if(admin&&String(view).startsWith('a'))return adminUI();
+ const can=U.coins>=S.min_coins,mine=AR.filter(r=>r.uid===me.id),ist=d=>new Date(d).toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'}),vToday=mine.filter(r=>r.video_path&&ist(r.created_at)===ist(Date.now())).length;
+ a.innerHTML=head()+`<div class="tabs"><button class="${view==='home'?'on':''}" data-v="home">Videos</button><button class="${view==='wallet'?'on':''}" data-v="wallet">Wallet</button>${admin?'<button data-v="a1">Admin</button>':''}</div>`+
+ (view==='home'?`<p class="mut">${esc(S.notice)} Har 1 minute = ${S.rate} coin</p>`+(V.map(v=>`<div class="card"><div class="vh"><b>${esc(v.title)}</b>${admin?`<span style="position:relative"><button class="g" data-menu="${v.id}" aria-label="Menu">⋮</button><div class="mn" id="m${v.id}" hidden><button class="g full" data-edit="${v.id}">Text badlo</button><button class="g full" data-del="${v.id}" style="color:var(--warn)">Video hatao</button></div></span>`:''}</div><div id="p${v.id}"><button class="full" data-play="${v.id}">▶ Dekho</button></div></div>`).join('')||'<p class="mut">Abhi koi video nahi.</p>')
+ :`<div class="card"><div class="mut">Aapke coin</div><div class="coins">${U.coins}</div></div>`+
+ `<div class="card"><b>Apna ad chalvao</b><p class="mut">Apni details aur offer bharo, hum WhatsApp par baat karenge.</p><input id="an" placeholder="Aapka naam"><input id="aw" type="tel" placeholder="WhatsApp number"><input id="am" type="number" min="1" step="any" inputmode="decimal" placeholder="Aap kitna payment doge (₹)"><select id="apl">${PL.map(x=>`<option value="${esc(x.label)}">${esc(x.label)}</option>`).join('')||'<option value="">Abhi koi option nahi</option>'}</select>${S.ad_vid_limit>0?`<label class="mut">Apna ad video (optional) · aaj ${vToday}/${S.ad_vid_limit} bheji</label><input id="avf" type="file" accept="video/*">`:'<p class="mut">Abhi video bhejna band hai.</p>'}<button class="full" id="arq" ${PL.length?'':'disabled'}>Request bhejo</button></div>`+
+ `<h3>Ad request status</h3>`+(mine.map(r=>`<div class="card">₹${esc(r.amount)} / ${esc(r.plan)}${r.video_url?' · 🎬 video':''} · ${r.status==='done'?`<span class="ok">Aapka ad chalu ho gaya ✓</span><div class="mut">${esc(r.note)}</div>`:'<span class="pend">Request check ho rahi hai</span>'}</div>`).join('')||'<p class="mut">Abhi koi request nahi.</p>'));
  a.querySelectorAll('[data-play]').forEach(b=>b.onclick=()=>play(+b.dataset.play));
- bindCommon();if($('#pr'))$('#pr').onclick=payReq}
+ a.querySelectorAll('[data-menu]').forEach(b=>b.onclick=e=>{e.stopPropagation();const m=$('#m'+b.dataset.menu),was=m.hidden;document.querySelectorAll('.mn').forEach(x=>x.hidden=true);m.hidden=!was});
+ a.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>editV(+b.dataset.edit));a.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>delV(+b.dataset.del));
+ bindCommon();if($('#arq'))$('#arq').onclick=adReq}
 
 /* ---- Video dekhna aur coin (coin server par judte hain) ---- */
-function play(id){document.querySelectorAll('video').forEach(x=>x.pause());const v=V.find(x=>x.id===id),box=$('#p'+id);
- box.innerHTML=`<video src="${esc(v.url)}" controls playsinline></video><div class="mut">Coin: <b id="cn">${U.coins}</b></div>`;
- const el=box.querySelector('video');
- el.onplay=()=>{clearInterval(timer);timer=setInterval(async()=>{const r=await sb.rpc('add_watch',{p_sec:5});if(r.data){U=r.data;const c=$('#cn');if(c)c.textContent=U.coins}},5000)};
- el.onpause=el.onended=()=>{clearInterval(timer);timer=null};
- el.play().catch(()=>{})}
-async function payReq(){const upi=$('#upi').value.trim(),ph=$('#ph').value.trim(),wa=$('#wa').value.trim();if(!upi||!ph||!wa)return alert('Teeno details bharo');
+function play(id){document.querySelectorAll('video').forEach(x=>x.pause());clearInterval(adIv);clearInterval(gapIv);const v=V.find(x=>x.id===id),box=$('#p'+id);let watched=0;
+ box.innerHTML=`<div id="ad${id}"></div><div id="mv${id}" hidden><video src="${esc(v.url)}" controls playsinline></video><div class="mut">Coin: <b id="cn">${U.coins}</b></div></div>`;
+ const main=$('#mv'+id),adb=$('#ad'+id),el=main.querySelector('video');
+ const withAd=cb=>{if(!A.length){main.hidden=false;return cb()}main.hidden=true;runAd(adb,()=>{adb.innerHTML='';main.hidden=false;cb()})};
+ const stopT=()=>{clearInterval(timer);timer=null;clearInterval(gapIv);gapIv=null};
+ el.onplay=()=>{stopT();
+  timer=setInterval(async()=>{const r=await sb.rpc('add_watch',{p_sec:5});if(r.data){U=r.data;const c=$('#cn');if(c)c.textContent=U.coins}},5000);
+  if(A.length&&S.ad_every>0)gapIv=setInterval(()=>{watched++;if(watched>=S.ad_every){watched=0;el.pause();withAd(()=>el.play().catch(()=>{}))}},1000)};
+ el.onpause=el.onended=stopT;
+ withAd(()=>el.play().catch(()=>{}))}
+function runAd(box,done){const ad=A[Math.floor(Math.random()*A.length)];
+ box.innerHTML=`<video src="${esc(ad.url)}" playsinline></video><div class="mut">Ad<span id="adt"></span></div><button class="g" id="adsk" hidden>Ad skip karo</button>`;
+ const v=box.querySelector('video'),sk=$('#adsk');let left=S.ad_skip,fin=false;
+ const end=()=>{if(fin)return;fin=true;clearInterval(adIv);adIv=null;done()};
+ v.onended=end;v.onerror=end;sk.onclick=end;
+ v.onplay=()=>{clearInterval(adIv);const tick=()=>{const t=$('#adt');if(!t)return;if(left>0){t.textContent=' · skip '+left+' sec me';left--}else{t.textContent='';sk.hidden=false}};tick();adIv=setInterval(tick,1000)};
+ v.play().catch(end)}
+const waLink=w=>{let d=String(w||'').replace(/\D/g,'');if(d.length===10)d='91'+d;return 'https://wa.me/'+d};
+async function adReq(){const n=$('#an').value.trim(),w=$('#aw').value.trim(),am=+$('#am').value,pl=$('#apl').value,f=$('#avf')?$('#avf').files[0]:null,btn=$('#arq');
+ if(!n||w.replace(/\D/g,'').length<10||!(am>0)||!pl)return alert('Naam, sahi WhatsApp number, amount aur option bharo');
+ if(f&&f.size>50*1024*1024)return alert('Ye video '+Math.round(f.size/1048576)+' MB ki hai. 50 MB se chhoti chuno.');
+ let video_url=null,video_path=null;
+ if(f){btn.disabled=true;btn.textContent='Video upload ho rahi hai…';
+  const path='userads/'+me.id+'/'+Date.now()+'_'+f.name.replace(/[^\w.-]/g,'_');
+  const up=await sb.storage.from('videos').upload(path,f,{contentType:f.type});
+  if(up.error){btn.disabled=false;btn.textContent='Request bhejo';return alert('Video nahi gayi. Aaj ki limit puri ho gayi ho ya video bhejna band hai.')}
+  video_url=sb.storage.from('videos').getPublicUrl(path).data.publicUrl;video_path=path}
+ const r=await sb.from('ad_requests').insert({name:n,wa:w,amount:am,plan:pl,video_url,video_path});
+ if(r.error){btn.disabled=false;btn.textContent='Request bhejo';return alert('Request nahi gayi: '+r.error.message)}
+ alert('Request bhej di gayi ✓');await refresh()}
+async function payReq(){const upi=$('#upi').value.trim(),ph=$('#ph').value.trim(),wa=$('#wa').value.trim();if(!upi||!ph||!wa)return alert('Teeno details bharo (ad detail, phone, WhatsApp)');
  const r=await sb.rpc('request_payout',{p_upi:upi,p_ph:ph,p_wa:wa});if(r.error)return alert(r.error.message);await refresh()}
 
 /* ---- Admin gate: code -> fingerprint -> code -> secret code ---- */
@@ -82,12 +116,12 @@ async function gnext(){msg='';const r=await sb.from('admin_secrets').select('*')
    else if(step===2){await passkey();step=3}
    else if(step===3){if(await sha(val)!==cache.c){msg='Code match nahi hua';return gate()}step=4}
    else{if(val.length<4||await sha(val)===cache.c){msg='Secret code alag aur 4+ akshar ka rakho';return gate()}
-     const w=await sb.from('admin_secrets').upsert({id:1,c:cache.c,s:await sha(val)});if(w.error)throw w.error;admin=true;step=0;view='a1'}
+     const w=await sb.from('admin_secrets').upsert({id:1,c:cache.c,s:await sha(val)});if(w.error)throw w.error;admin=true;step=0;view='home'}
  }else{
    if(step===1){if(await sha(val)!==D.c){msg='Galat code';return gate()}step=2}
    else if(step===2){await passkey();step=3}
    else if(step===3){if(await sha(val)!==D.c){msg='Galat code';return gate()}step=4}
-   else{if(await sha(val)!==D.s){msg='Galat secret code';return gate()}admin=true;step=0;view='a1'}}
+   else{if(await sha(val)!==D.s){msg='Galat secret code';return gate()}admin=true;step=0;view='home'}}
  }catch(e){msg='Error: '+e.message}
  render()}
 async function passkey(){const id=localStorage.getItem('pk_'+me.id),ch=crypto.getRandomValues(new Uint8Array(32));
@@ -96,17 +130,41 @@ async function passkey(){const id=localStorage.getItem('pk_'+me.id),ch=crypto.ge
   localStorage.setItem('pk_'+me.id,btoa(String.fromCharCode(...new Uint8Array(c.rawId))))}}
 
 /* ---- Admin panel ---- */
+const plansCard=()=>`<div class="card"><b>Ad payment ke option (per hour / week / month …)</b><p class="mut">Jo yahan hoga wahi users ko dikhega. Jodo, naam badlo ya hatao.</p>`+(PL.map(x=>`<div class="vh"><span>${esc(x.label)}</span><span style="display:flex;gap:6px"><button class="g" data-pedit="${x.id}">Badlo</button><button class="g" data-pdel="${x.id}" style="color:var(--warn)">Hatao</button></span></div>`).join('')||'<p class="mut">Abhi koi option nahi.</p>')+`<input id="pn" placeholder="Naya option (jaise Per day)"><button class="full" id="padd">Option jodo</button></div>`;
 function adminUI(){const a=$('#app');
- a.innerHTML=head()+`<div class="tabs"><button class="${view==='a1'?'on':''}" data-v="a1">Payout</button><button class="${view==='a2'?'on':''}" data-v="a2">Video</button><button class="${view==='a3'?'on':''}" data-v="a3">Setting</button></div>`+
- (view==='a1'?P.map(p=>`<div class="card"><b>${esc(p.name)}</b> · ${p.coins} coin (₹${(p.coins*CFG.COIN_RS).toFixed(0)})<div class="mut">UPI: ${esc(p.upi)}<br>Phone: ${esc(p.ph)}<br>WhatsApp: ${esc(p.wa)}</div>${p.status==='paid'?'<span class="ok">Paid ✓</span>':`<a href="upi://pay?pa=${encodeURIComponent(p.upi)}&pn=${encodeURIComponent(p.name||'User')}&am=${(p.coins*CFG.COIN_RS).toFixed(2)}&cu=INR"><button class="g full">UPI app me payment karo</button></a><input id="n${p.id}" placeholder="Message / UPI ref no."><button class="full" data-paid="${p.id}">Payment ho gayi, user ko batao</button>`}</div>`).join('')||'<p class="mut">Koi request nahi.</p>'
- :view==='a2'?`<div class="card"><b>Naya video</b><input id="vt" placeholder="Title"><input id="vf" type="file" accept="video/*"><button class="full" id="up">App me upload karo</button><div id="us" class="mut"></div></div>`+V.map(v=>`<div class="card">${esc(v.title)} <button class="g" data-del="${v.id}">Hatao</button></div>`).join('')
- :`<div class="card"><input id="sn" value="${esc(S.name)}" placeholder="App ka naam"><input id="sc" value="${esc(S.notice)}" placeholder="Notice"><input id="sl" type="color" value="${S.color}"><button class="full" id="ss">Save</button><p class="mut">Coin rate aur ${S.min_coins} coin ka rule payment lock me hai (Supabase me badlo).</p></div>`);
+ a.innerHTML=head()+`<div class="tabs"><button data-v="home">Videos</button><button class="${view==='a1'?'on':''}" data-v="a1">Ad requests</button><button class="${view==='a2'?'on':''}" data-v="a2">Upload</button><button class="${view==='a3'?'on':''}" data-v="a3">Setting</button><button class="${view==='a4'?'on':''}" data-v="a4">Ads</button></div>`+
+ (view==='a1'?AR.map(r=>`<div class="card"><b>${esc(r.name)}</b> · ₹${esc(r.amount)} / ${esc(r.plan)}<div class="mut">WhatsApp: <a href="${waLink(r.wa)}" target="_blank" rel="noopener">${esc(r.wa)}</a></div>${r.video_url?`<video src="${esc(r.video_url)}" controls playsinline style="margin-top:8px"></video>`:''}${r.status==='done'?`<div class="ok">Ad chalu ✓${r.video_url?' (video ads me jud gayi)':''}</div>`:`<input id="n${r.id}" placeholder="User ke liye message (optional)"><button class="full" data-paid="${r.id}">${r.video_url?'Approve: video ads me chalu karo':'Ad chalu kar diya, user ko batao'}</button>`}<button class="g full" data-rdel="${r.id}" style="margin-top:8px;color:var(--warn)">Request hatao</button></div>`).join('')||'<p class="mut">Koi request nahi.</p>'
+ :view==='a4'?(`<div class="card"><b>Ad video</b><input id="at" placeholder="Ad ka naam"><input id="af" type="file" accept="video/*"><button class="full" id="aup">Ad upload karo</button><div id="aus" class="mut"></div></div>`+(A.map(x=>`<div class="card"><div class="vh"><b>${esc(x.title)}</b><span style="position:relative"><button class="g" data-menu="a${x.id}" aria-label="Ad menu">⋮</button><div class="mn" id="ma${x.id}" hidden><button class="g full" data-aedit="${x.id}">Text badlo</button><button class="g full" data-adel="${x.id}" style="color:var(--warn)">Ad hatao</button></div></span></div></div>`).join('')||'<p class="mut">Abhi koi ad nahi. Ad na ho to video seedha chalta hai.</p>')):view==='a2'?`<div class="card"><b>Naya video</b><input id="vt" placeholder="Title"><input id="vf" type="file" accept="video/*"><button class="full" id="up">App me upload karo</button><div id="us" class="mut"></div></div>`+(V.map(v=>`<div class="card"><div class="vh"><b>${esc(v.title)}</b><span style="position:relative"><button class="g" data-menu="w${v.id}" aria-label="Video menu">⋮</button><div class="mn" id="mw${v.id}" hidden><button class="g full" data-vedit="${v.id}">Text badlo</button><button class="g full" data-vdel="${v.id}" style="color:var(--warn)">Video hatao</button></div></span></div></div>`).join('')||'<p class="mut">Abhi koi video nahi.</p>')
+ :`<div class="card"><input id="sn" value="${esc(S.name)}" placeholder="App ka naam"><input id="sc" value="${esc(S.notice)}" placeholder="Notice"><input id="sl" type="color" value="${S.color}"><label class="mut">Ad har kitne second baad aaye (0 = beech me ad nahi)</label><input id="sa" type="number" min="0" step="1" value="${S.ad_every}"><label class="mut">Ad kitne second baad skip ho (0 = turant)</label><input id="sk" type="number" min="0" step="1" value="${S.ad_skip}"><label class="mut">Ek user din me kitni ad video bhej sakta hai (0 = band)</label><input id="sv" type="number" min="0" step="1" value="${S.ad_vid_limit}"><button class="full" id="ss">Save</button><p class="mut">Coin rate aur ${S.min_coins} coin ka rule payment lock me hai (Supabase me badlo).</p></div>`+plansCard());
  bindCommon();
- a.querySelectorAll('[data-paid]').forEach(b=>b.onclick=async()=>{const r=await sb.from('payouts').update({status:'paid',note:$('#n'+b.dataset.paid).value||'Aapki payment bhej di gayi hai.'}).eq('id',b.dataset.paid);if(r.error)alert(r.error.message);await refresh()});
- a.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{const v=V.find(x=>x.id==b.dataset.del);if(v.path)await sb.storage.from('videos').remove([v.path]);await sb.from('videos').delete().eq('id',v.id);await refresh()});
- if($('#ss'))$('#ss').onclick=async()=>{const r=await sb.from('app_config').update({name:$('#sn').value,notice:$('#sc').value,color:$('#sl').value}).eq('id',1);if(r.error)alert(r.error.message);await refresh()};
- if($('#up'))$('#up').onclick=upload}
+ a.querySelectorAll('[data-paid]').forEach(b=>b.onclick=async()=>{const q=AR.find(z=>z.id==b.dataset.paid);
+  if(q&&q.video_url&&!A.find(x=>x.path===q.video_path)){const ia=await sb.from('ads').insert({title:q.name+' · '+q.plan,url:q.video_url,path:q.video_path});if(ia.error)return alert('Video ads me nahi jud payi: '+ia.error.message)}
+  const r=await sb.from('ad_requests').update({status:'done',note:$('#n'+b.dataset.paid).value||'Aapka ad chalu kar diya gaya hai.'}).eq('id',b.dataset.paid);if(r.error)alert(r.error.message);await refresh()});
+ if($('#ss'))$('#ss').onclick=async()=>{const r=await sb.from('app_config').update({name:$('#sn').value,notice:$('#sc').value,color:$('#sl').value,ad_every:Math.max(0,Math.floor(+$('#sa').value||0)),ad_skip:Math.max(0,Math.floor(+$('#sk').value||0)),ad_vid_limit:Math.max(0,Math.floor(+$('#sv').value||0))}).eq('id',1);if(r.error)alert(r.error.message);await refresh()};
+ if($('#padd'))$('#padd').onclick=async()=>{const t=$('#pn').value.trim();if(!t)return;const r=await sb.from('ad_plans').insert({label:t,sort:PL.length?Math.max(...PL.map(x=>x.sort||0))+1:1}).select();if(r.error||!r.data.length)alert('Option nahi jud paya. ad_requests.sql chalaya?');await refresh()};
+ a.querySelectorAll('[data-pedit]').forEach(b=>b.onclick=async()=>{const x=PL.find(z=>z.id==b.dataset.pedit),t=prompt('Option ka naya naam',x.label);if(t===null||!t.trim())return;const r=await sb.from('ad_plans').update({label:t.trim()}).eq('id',x.id).select();if(r.error||!r.data.length)alert('Badal nahi paya.');await refresh()});
+ a.querySelectorAll('[data-pdel]').forEach(b=>b.onclick=async()=>{const x=PL.find(z=>z.id==b.dataset.pdel);if(!confirm('Ye option hatana hai?\n\n'+x.label))return;const r=await sb.from('ad_plans').delete().eq('id',x.id).select();if(r.error||!r.data.length)alert('Hata nahi paya.');await refresh()});
+ a.querySelectorAll('[data-rdel]').forEach(b=>b.onclick=async()=>{if(!confirm('Ye request hatani hai?'))return;const q=AR.find(z=>z.id==b.dataset.rdel);if(q&&q.video_path){await sb.from('ads').delete().eq('path',q.video_path);await sb.storage.from('videos').remove([q.video_path])}const r=await sb.from('ad_requests').delete().eq('id',b.dataset.rdel).select();if(r.error||!r.data.length)alert('Hata nahi paya.');await refresh()});
+ if($('#up'))$('#up').onclick=upload;
+ if($('#aup'))$('#aup').onclick=uploadAd;
+ a.querySelectorAll('[data-vedit]').forEach(b=>b.onclick=()=>editV(+b.dataset.vedit));a.querySelectorAll('[data-vdel]').forEach(b=>b.onclick=()=>delV(+b.dataset.vdel));
+ a.querySelectorAll('[data-menu]').forEach(b=>b.onclick=e=>{e.stopPropagation();const m=$('#m'+b.dataset.menu),was=m.hidden;document.querySelectorAll('.mn').forEach(x=>x.hidden=true);m.hidden=!was});
+ a.querySelectorAll('[data-aedit]').forEach(b=>b.onclick=async()=>{const x=A.find(z=>z.id==b.dataset.aedit),t=prompt('Ad ka naya text likho',x.title);if(t===null||!t.trim())return;const r=await sb.from('ads').update({title:t.trim()}).eq('id',x.id).select();if(r.error||!r.data.length)alert('Text badal nahi paya. Naya SQL chalaya?');await refresh()});
+ a.querySelectorAll('[data-adel]').forEach(b=>b.onclick=async()=>{const x=A.find(z=>z.id==b.dataset.adel);if(!confirm('Sirf ye ad hatana hai?\n\n'+x.title))return;if(x.path)await sb.storage.from('videos').remove([x.path]);const r=await sb.from('ads').delete().eq('id',x.id).select();if(r.error||!r.data.length)alert('Ad hata nahi paya.');await refresh()})}
+async function editV(id){const v=V.find(x=>x.id===id),t=prompt('Naya text likho',v.title);if(t===null||!t.trim())return;
+ const r=await sb.from('videos').update({title:t.trim()}).eq('id',id).select();if(r.error||!r.data.length)alert('Text badal nahi paya. Naya SQL chalaya?');await refresh()}
+async function delV(id){const v=V.find(x=>x.id===id);if(!confirm('Sirf ye video hatana hai?\n\n'+v.title))return;
+ if(v.path)await sb.storage.from('videos').remove([v.path]);const r=await sb.from('videos').delete().eq('id',id).select();if(r.error||!r.data.length)alert('Video hata nahi paya.');await refresh()}
+document.addEventListener('click',e=>{if(!e.target.closest('[data-menu]'))document.querySelectorAll('.mn').forEach(m=>m.hidden=true)});
+async function uploadAd(){const f=$('#af').files[0],t=$('#at').value.trim(),us=$('#aus');if(!f||!t)return alert('Ad ka naam aur video chuno');
+ if(f.size>50*1024*1024)return alert('Ye video '+Math.round(f.size/1048576)+' MB ka hai. 50 MB se chhota chuno.');
+ try{us.textContent='Ad upload ho raha hai…';const path='ads/'+Date.now()+'_'+f.name.replace(/[^\w.-]/g,'_');
+ const up=await sb.storage.from('videos').upload(path,f,{contentType:f.type});if(up.error)throw up.error;
+ const url=sb.storage.from('videos').getPublicUrl(path).data.publicUrl;
+ const ins=await sb.from('ads').insert({title:t,url,path});if(ins.error)throw ins.error;
+ us.textContent='Ad jud gaya ✓';await load();render()}catch(e){us.textContent='Error: '+e.message}}
 async function upload(){const f=$('#vf').files[0],t=$('#vt').value.trim(),us=$('#us');if(!f||!t)return alert('Title aur video chuno');
+ if(f.size>50*1024*1024)return alert('Ye video '+Math.round(f.size/1048576)+' MB ka hai. 50 MB se chhota video chuno ya compress karo.');
  try{us.textContent='Upload ho raha hai… (bade video me time lagega)';const path=Date.now()+'_'+f.name.replace(/[^\w.-]/g,'_');
  const up=await sb.storage.from('videos').upload(path,f,{contentType:f.type});if(up.error)throw up.error;
  const url=sb.storage.from('videos').getPublicUrl(path).data.publicUrl;
