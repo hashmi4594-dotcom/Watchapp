@@ -92,7 +92,7 @@ async function payReq(){const upi=$('#upi').value.trim(),ph=$('#ph').value.trim(
 
 /* ---- Admin gate: code -> fingerprint -> code -> secret code ---- */
 function gate(){if(rst)return rstUI();const t=['','Code','Fingerprint','Code dobara','Secret code'][step];
- $('#app').innerHTML=head()+`<div class="card"><b>Step ${step}/4: ${t}</b>${step!==2?`<input id="g" type="password" placeholder="${t}">`:'<p class="mut">Phone ka fingerprint/screen lock verify hoga.</p>'}<button class="full" id="gn">Verify</button><button class="g full" id="gb" style="margin-top:8px">Wapas</button>${step===1?'<button class="g full" id="gf" style="margin-top:8px">Password bhool gaye?</button>':''}<p class="pend">${esc(msg)}</p></div>`;
+ $('#app').innerHTML=head()+`<div class="card"><b>Step ${step}/4: ${t}</b>${step!==2?`<input id="g" type="password" placeholder="${t}">`:'<p class="mut">Phone ka fingerprint/screen lock verify hoga.</p>'}<button class="full" id="gn">Verify</button><button class="g full" id="gb" style="margin-top:8px">Wapas</button><p class="pend">${esc(msg)}</p></div>${step===1?'<div style="text-align:center;margin-top:28px"><button class="g" id="gf">Password bhool gaye?</button></div>':''}`;
  $('#gn').onclick=gnext;$('#gb').onclick=()=>{step=0;render()};if($('#gf'))$('#gf').onclick=()=>{rst={s:0};msg='';render()};bindCommon()}
 async function gnext(){msg='';const r=await sb.from('admin_secrets').select('*').eq('id',1).maybeSingle(),D=r.data,val=$('#g')?$('#g').value:'';
  if(r.error){msg='Error: '+r.error.message;return gate()}
