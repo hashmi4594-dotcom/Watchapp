@@ -22,8 +22,23 @@ button.g{background:transparent;color:var(--ink);border:1px solid var(--line)}bu
 .vh{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
 .mn{position:absolute;right:0;top:48px;min-width:160px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px;z-index:5;display:flex;flex-direction:column;gap:6px}.mn[hidden]{display:none}
 .tabs button{padding:11px 4px;font-size:14px}
+.ft{max-width:480px;margin:0 auto;padding:14px 16px 28px;text-align:center;font-size:13px;color:var(--mut)}.ft a{color:var(--mut)}
+.pg h1{font-size:24px}.pg h2{font-size:18px;margin:20px 0 6px}.pg p,.pg li{font-size:15px}.pg a{color:var(--acc)}
+.land{background:radial-gradient(circle at 85% 12%,#0b3a8f66,transparent 55%),#050b1f;color:#fff}.land .ft,.land .ft a{color:#8fa3d6}
+.lp{max-width:480px;margin:0 auto}.lh{display:flex;justify-content:space-between;align-items:center}.lg{display:flex;align-items:center;gap:8px;font:800 20px/1.1 Georgia,serif}
+.lgo{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#1e90ff,#00e5ff);display:flex;align-items:center;justify-content:center}
+.lb{border:2px solid #22d3ee;background:transparent;color:#fff;border-radius:30px;padding:8px 18px;min-height:40px}
+.chip{display:inline-block;border:1px solid #f5c542;border-radius:30px;padding:6px 12px;font-size:13px;margin:16px 0 8px}
+.hero h2{font:900 46px/1 system-ui;margin:0}.hero h2 em{font-style:normal;display:block;background:linear-gradient(90deg,#22d3ee,#34d399);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{color:#c9d6f5;margin:12px 0}.gb{display:flex;align-items:center;justify-content:space-between;width:100%;background:#fff;color:#111;border-radius:40px;padding:14px 22px;font:700 18px system-ui;box-shadow:0 0 26px #3b82f6aa}
+.sec{text-align:center;font-size:14px;color:#9fe8d8;margin:10px 0}.ph{display:block;margin:6px auto;max-width:240px}
+.f4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center;font-size:12px;border:1px solid #1e3a8a;border-radius:16px;padding:14px 4px;background:#0a1330;margin:14px 0}
+.f4 b{display:block;font-size:13px}.f4 small{color:#9fb0dd}.ic{width:52px;height:52px;border-radius:50%;margin:0 auto 6px;display:flex;align-items:center;justify-content:center;font-size:24px}
+.wy{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;font-size:12px}.wy div{border:1px solid #1e3a8a;border-radius:14px;padding:12px 4px;background:#0a1330}.wy b{display:block;font-size:14px}.wy small{color:#9fb0dd}
+.ban{border-radius:16px;background:linear-gradient(90deg,#0b2a6b,#0891b2);padding:18px;margin:16px 0}.ban h3{margin:0 0 4px;font:800 24px system-ui}.ban em{font-style:normal;color:#34f5c5}
 video{width:100%;border-radius:10px;background:#000;aspect-ratio:16/9}
 </style></head><body><main id="app">Loading…</main>
+<footer class="ft"><a href="?page=about">About</a> · <a href="?page=privacy">Privacy Policy</a> · <a href="mailto:hashmi4594@gmail.com">Contact</a><div>© 2026 Hashmi Watchapp. All rights reserved.</div></footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 const CFG={
@@ -34,6 +49,27 @@ const CFG={
  COIN_RS:0.1                                                  // 1 coin = kitne rupaye
 };
 (function(){
+const PAGES={privacy:`<h1>Privacy Policy</h1><p>Last updated: October 19, 2026</p>
+<p>Hashmi Watchapp ("we", "our") is a website where signed-in users watch videos and earn coins. This policy explains what information we handle and why.</p>
+<h2>Information we collect</h2><ul>
+<li><b>Google sign-in:</b> your name, email address and profile ID, provided by Google when you sign in.</li>
+<li><b>Activity:</b> how long you watch videos and the coins you earn.</li>
+<li><b>Payout details:</b> if you request a payout, the UPI ID, phone number and WhatsApp number you enter. We use them only to pay you and to contact you about the payment.</li>
+<li><b>On your device:</b> your browser stores sign-in session data and, for admins, a security key. We do not use this to track you across other sites.</li></ul>
+<h2>How we use it</h2><p>To run your account, count watch time, process payouts, prevent misuse and improve the site. We do not sell your personal information.</p>
+<h2>Advertising</h2><p>We show our own video ads and may also show ads from advertising partners. Third-party vendors, including Google, use cookies to serve ads based on your prior visits to this and other websites. You can manage personalised ads at <a href="https://adssettings.google.com" rel="noopener">Google Ads Settings</a>.</p>
+<h2>Service providers</h2><p>We use trusted third-party service providers for sign-in, database, video storage and hosting. They process data on our behalf under their own privacy policies.</p>
+<h2>Retention and deletion</h2><p>We keep account data while your account is active. To ask for your data to be deleted, email us from your registered address and we will respond within a reasonable time. Payment records may be kept as required by law.</p>
+<h2>Children</h2><p>This service is intended for users aged 18 and over. We do not knowingly collect data from children.</p>
+<h2>Changes</h2><p>We may update this policy. The date above shows the latest version.</p>
+<h2>Contact</h2><p>Questions or requests: <a href="mailto:hashmi4594@gmail.com">hashmi4594@gmail.com</a></p>`,about:`<h1>About Hashmi Watchapp</h1>
+<p>Hashmi Watchapp is a video watching website. Sign in with your Google account, watch videos, and earn coins for the time you spend watching. When you reach the required coins, you can request a payout.</p>
+<h2>How it works</h2><ul><li>Sign in with Google.</li><li>Watch videos and earn coins for watch time.</li><li>At 1000 coins, the payout form unlocks.</li><li>We review your request and send the payment, and you see the status in the app.</li></ul>
+<h2>Copyright</h2><p>&copy; 2026 Hashmi Watchapp. The design, code and original content of this website are owned by Hashmi Watchapp and may not be copied or reused without written permission.</p>
+<p>Videos shown on this site belong to their respective owners. If you believe a video infringes your copyright, email us with the video title, proof that you own the rights and your contact details, and we will review it and remove it where appropriate.</p>
+<h2>Contact</h2><p><a href="mailto:hashmi4594@gmail.com">hashmi4594@gmail.com</a></p>`};
+const PG=new URLSearchParams(location.search).get('page');
+if(PAGES[PG]){document.title=(PG=='privacy'?'Privacy Policy':'About')+' | Hashmi Watchapp';document.getElementById('app').innerHTML='<div class="pg">'+PAGES[PG]+'<p><a href="./">&larr; Back to Hashmi Watchapp</a></p></div>';return}
 const sb=supabase.createClient(CFG.SUPA_URL,CFG.SUPA_KEY);
 const $=s=>document.querySelector(s),esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let S={name:'Dekho aur Kamao',notice:'Video dekho, coin kamao!',rate:10,min_coins:1000,color:'#0f766e',ad_every:20,ad_skip:5};
@@ -54,8 +90,21 @@ const head=()=>`<div class="top"><h1 id="logo">${esc(S.name)}</h1>${me?'<button 
 const bindCommon=()=>{const l=$('#logo');if(l)l.onclick=()=>{if(isAdminMail()&&++taps>=5){taps=0;step=1;render()}};const o=$('#lo');if(o)o.onclick=logout;
  document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{view=b.dataset.v;render()})};
 
-function render(){clearInterval(timer);timer=null;clearInterval(adIv);adIv=null;clearInterval(gapIv);gapIv=null;const a=$('#app');
- if(!me){a.innerHTML=head()+`<div class="card"><p>${esc(S.notice)}</p><button class="full" id="gl">Google se Sign in</button><p class="pend">${esc(msg)}</p></div>`;$('#gl').onclick=login;return}
+const LAND=()=>`<div class="lp"><div class="lh"><div class="lg"><span class="lgo"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z" fill="#fff"/></svg></span><span>Hashmi<br>Watchapp</span></div><button class="lb" id="gl2">Login</button></div>
+<div class="chip">👑 Watch Videos • Earn Coins • Real Rewards</div>
+<div class="hero"><h2>Dekho aur <em>Kamao</em></h2><p>Short videos dekho, coins kamao aur unhe rewards me convert karo. Simple aur fast!</p></div>
+<button class="gb" id="gl"><svg width="26" height="26" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg><span>Google se Sign in</span><span>›</span></button>
+<div class="sec">🛡 Secure Google login</div><p class="pend" style="text-align:center">${esc(msg)}</p>
+<svg class="ph" viewBox="0 0 240 280" aria-hidden="true"><defs><linearGradient id="sk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1e3a8a"/><stop offset=".6" stop-color="#f97316"/><stop offset="1" stop-color="#7c2d12"/></linearGradient><radialGradient id="cn" cx=".35" cy=".3"><stop offset="0" stop-color="#fff3b0"/><stop offset="1" stop-color="#e59e0b"/></radialGradient></defs>
+<rect x="70" y="20" width="110" height="230" rx="18" fill="#0b1226" stroke="#6b7cff" stroke-width="3"/><rect x="78" y="40" width="94" height="120" rx="8" fill="url(#sk)"/><circle cx="125" cy="100" r="18" fill="#0008"/><path d="M119 90l16 10-16 10z" fill="#fff"/>
+<rect x="80" y="172" width="70" height="5" rx="2" fill="#4b5a8a"/><rect x="80" y="186" width="90" height="5" rx="2" fill="#4b5a8a"/><rect x="80" y="200" width="60" height="5" rx="2" fill="#4b5a8a"/>
+<g font-family="system-ui" font-weight="800" fill="#7a4a00" text-anchor="middle"><circle cx="40" cy="90" r="26" fill="url(#cn)"/><text x="40" y="100" font-size="28">₹</text><circle cx="205" cy="60" r="20" fill="url(#cn)"/><text x="205" y="68" font-size="22">₹</text><circle cx="200" cy="190" r="30" fill="url(#cn)"/><text x="200" y="201" font-size="32">₹</text><circle cx="52" cy="200" r="18" fill="url(#cn)"/><text x="52" y="207" font-size="20">₹</text></g></svg>
+<div class="f4"><div><div class="ic" style="background:#0d6b5c">▶</div><b>Videos Dekho</b><small>Daily new videos</small></div><div><div class="ic" style="background:#7a5a0a">🪙</div><b>Coins Kamao</b><small>Har minute par</small></div><div><div class="ic" style="background:#5b2a9a">🎁</div><b>Rewards</b><small>Coins redeem karo</small></div><div><div class="ic" style="background:#1d4ed8">🛡</div><b>Secure</b><small>Google login</small></div></div>
+<h3 style="text-align:center;margin:18px 0 10px">Kyun Choose Karein?</h3>
+<div class="wy"><div><span style="font-size:26px">⚡</span><b>Fast Earning</b><small>Short videos, quick coins</small></div><div><span style="font-size:26px">🏆</span><b>Real Rewards</b><small>Coins ko redeem karo</small></div><div><span style="font-size:26px">🔒</span><b>Secure Sign-in</b><small>Google account se login</small></div></div>
+<div class="ban"><h3>Watch. Earn. <em>Redeem.</em></h3><div style="color:#d6e4ff;font-size:14px">Har minute video dekhne par coins kamao.</div></div></div>`;
+function render(){document.body.classList.toggle('land',!me);clearInterval(timer);timer=null;clearInterval(adIv);adIv=null;clearInterval(gapIv);gapIv=null;const a=$('#app');
+ if(!me){a.innerHTML=LAND();$('#gl').onclick=login;$('#gl2').onclick=login;return}
  if(step>0&&!admin)return gate();
  if(admin&&String(view).startsWith('a'))return adminUI();
  const can=U.coins>=S.min_coins,mine=P.filter(p=>p.uid===me.id);
